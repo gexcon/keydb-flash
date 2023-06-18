@@ -40,9 +40,9 @@ jobs:
         uses: docker/metadata-action@818d4b7b91585d195f67373fd9cb0332e31a7175
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          #            type=raw,value=latest
           tags: |
             type=semver,pattern={{version}},value=${{ env.LATEST_TAG }}
-            type=raw,value=latest
 
       - name: Build and Push Container Image(s)
         uses: docker/build-push-action@v4

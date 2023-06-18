@@ -3,10 +3,11 @@ SHELL ["/bin/bash","-c"]
 RUN groupadd -r keydb && useradd -r -g keydb keydb
 # use gosu for easy step-down from root: https://github.com/tianon/gosu/releases
 ENV GOSU_VERSION 1.14
+ARG ADDITIONAL_APT_PACKAGES=""
 RUN set -eux; \
         savedAptMark="$(apt-mark showmanual)"; \
         apt-get update; \
-        apt-get install -y --no-install-recommends ca-certificates dirmngr gnupg wget; \
+        apt-get install -y --no-install-recommends ca-certificates dirmngr gnupg wget $ADDITIONAL_APT_PACKAGES; \
         rm -rf /var/lib/apt/lists/*; \
         dpkgArch="$(dpkg --print-architecture | awk -F- '{ print $NF }')"; \
         wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch"; \
@@ -24,7 +25,8 @@ RUN set -eux; \
         gosu nobody true
 # build KeyDB
 ARG SRC_REPO="https://github.com/Snapchat/KeyDB"
-ARG BRANCH=sub_latest_tag
+ARG BRANCH="sub_latest_tag"
+ARG MAKE_ARGS="ENABLE_FLASH=yes"
 RUN set -eux; \
         \
         savedAptMark="$(apt-mark showmanual)"; \
@@ -48,15 +50,14 @@ RUN set -eux; \
                 libsnappy-dev \
                 libssl-dev \
                 git; \
-        export LATEST_TAG="$(git ls-remote --tags --exit-code --refs "$SRC_REPO" | sed -E 's/^[[:xdigit:]]+[[:space:]]+refs\/tags\/(.+)/\1/g' | tail -n1)"; \
-        export EFF_BRANCH="$( [ "$BRANCH" != "sub_latest_tag" ] && echo "$BRANCH" || echo "$LATEST_TAG" )"; \
+        export EFF_BRANCH="$( [ "$BRANCH" != "sub_latest_tag" ] && echo "$BRANCH" || echo "$(git ls-remote --tags --exit-code --refs "$SRC_REPO" | sed -E 's/^[[:xdigit:]]+[[:space:]]+refs\/tags\/(.+)/\1/g' | tail -n1)" )"; \
         cd /tmp && git clone --branch "$EFF_BRANCH" --shallow-submodules --recurse-submodules --depth 1 "$SRC_REPO" KeyDB; \
         cd /tmp/KeyDB; \
         # disable protected mode as it relates to docker
         grep -E '^ *createBoolConfig[(]"protected-mode",.*, *1 *,.*[)],$' ./src/config.cpp; \
         sed -ri 's!^( *createBoolConfig[(]"protected-mode",.*, *)1( *,.*[)],)$!\10\2!' ./src/config.cpp; \
         grep -E '^ *createBoolConfig[(]"protected-mode",.*, *0 *,.*[)],$' ./src/config.cpp; \
-        make -j$(nproc) BUILD_TLS=yes ENABLE_FLASH=yes; \
+        make -j$(nproc) BUILD_TLS=yes $MAKE_ARGS; \
         cd src; \
         strip keydb-cli keydb-benchmark keydb-check-rdb keydb-check-aof keydb-diagnostic-tool keydb-sentinel keydb-server; \
         mv keydb-server keydb-cli keydb-benchmark keydb-check-rdb keydb-check-aof keydb-diagnostic-tool keydb-sentinel /usr/local/bin/; \
