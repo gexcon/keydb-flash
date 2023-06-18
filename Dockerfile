@@ -24,7 +24,7 @@ RUN set -eux; \
         gosu nobody true
 # build KeyDB
 ARG SRC_REPO="https://github.com/Snapchat/KeyDB"
-ARG BRANCH=latest_tag
+ARG BRANCH=sub_latest_tag
 RUN set -eux; \
         \
         savedAptMark="$(apt-mark showmanual)"; \
@@ -49,7 +49,7 @@ RUN set -eux; \
                 libssl-dev \
                 git; \
         EFF_BRANCH="$( [ "$BRANCH" != "sub_latest_tag" ] && echo "$BRANCH" || echo "$(git ls-remote --tags --exit-code --refs "$SRC_REPO" | sed -E 's/^[[:xdigit:]]+[[:space:]]+refs\/tags\/(.+)/\1/g' | tail -n1)" )" \
-        cd /tmp && git clone --branch "$LATEST_TAG" --shallow-submodules --recurse-submodules --depth 1 "$SRC_REPO"; \
+        cd /tmp && git clone --branch "$EFF_BRANCH" --shallow-submodules --recurse-submodules --depth 1 "$SRC_REPO"; \
         cd /tmp/KeyDB; \
         # disable protected mode as it relates to docker
         grep -E '^ *createBoolConfig[(]"protected-mode",.*, *1 *,.*[)],$' ./src/config.cpp; \
