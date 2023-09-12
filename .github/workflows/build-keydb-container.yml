@@ -46,7 +46,7 @@ jobs:
             type=raw,value=${{ env.GH_REPO_TAG }}
 
       - name: Build and Push Container Image(s)
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context:
           platforms: linux/amd64  # ,linux/arm64
